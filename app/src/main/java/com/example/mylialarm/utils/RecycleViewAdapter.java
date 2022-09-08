@@ -14,6 +14,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.mylialarm.AlarmActivity;
 import com.example.mylialarm.MainActivity;
 import com.example.mylialarm.R;
+import com.example.mylialarm.bean.Data;
+import com.example.mylialarm.bean.RequestData;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,14 +23,14 @@ import java.util.List;
 
 public class RecycleViewAdapter extends RecyclerView.Adapter<MyViewHolder> {
 
-    public List<String> list;
+    public List<Data> recycleDataList;
     private final Context context;
     private View itemView;
-    public static List<String> staticList;
+    public static List<Data> staticList;
 
-    public RecycleViewAdapter(Context context, List<String> list) {
+    public RecycleViewAdapter(Context context, List<Data> list) {
         this.context = context;
-        this.list = list;
+        this.recycleDataList = list;
         staticList = list;
     }
 
@@ -41,13 +43,13 @@ public class RecycleViewAdapter extends RecyclerView.Adapter<MyViewHolder> {
 
     @Override
     public void onBindViewHolder(@NonNull MyViewHolder holder, int position) {
-        String data = list.get(position);
+        String data = recycleDataList.get(position).toString();
         holder.textView.setText(data);
     }
 
     @Override
     public int getItemCount() {
-        return list.size();
+        return recycleDataList.size();
     }
 }
 
@@ -61,16 +63,11 @@ class MyViewHolder extends RecyclerView.ViewHolder{
         itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (MainActivity.staticRequestData!=null){
-                    Intent intent = new Intent(itemView.getContext(), AlarmActivity.class);
-                    Bundle bundle = new Bundle();
-                    bundle.putString("getData",RecycleViewAdapter.staticList.get(getLayoutPosition()));
-                    bundle.putInt("position",getLayoutPosition());
-                    intent.putExtras(bundle);
-                    itemView.getContext().startActivity(intent);
-                }else {
-                    Toast.makeText(itemView.getContext(), "请先获取数据", Toast.LENGTH_SHORT).show();
-                }
+                Intent intent = new Intent(itemView.getContext(), AlarmActivity.class);
+                Bundle bundle = new Bundle();
+                bundle.putParcelable("getData",RecycleViewAdapter.staticList.get(getLayoutPosition()));
+                intent.putExtras(bundle);
+                itemView.getContext().startActivity(intent);
             }
         });
 

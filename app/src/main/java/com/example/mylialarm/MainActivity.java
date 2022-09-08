@@ -30,15 +30,14 @@ public class MainActivity extends AppCompatActivity {
 
     public static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     private static final String TAG = "MainActivity";
-    String URL = "http://10.245.17.106:8888/";
-    private OkHttpClient client;
-    private Retrofit retrofit;
-    HttpLoggingInterceptor interceptor;
-    TimeDataService apiService;
-    public static RequestData staticRequestData;
-    private RecyclerView recyclerView;
-    private RecycleViewAdapter recycleViewAdapter;
-    private List<String> list = new ArrayList<>();
+    String connectionToCloudURL = "http://10.245.17.106:8888/";
+    private OkHttpClient httpClient;
+    private Retrofit connectionToCloud;
+    HttpLoggingInterceptor retrofitInterceptor;
+    TimeDataService connectionToCloudURLApiService;
+    private RecyclerView dataListRecyclerView;
+    private RecycleViewAdapter dataListRecyclerViewAdapter;
+    private List<Data> recycleDataList;
 
 
     @Override
@@ -46,56 +45,65 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        for (int i = 0; i < 10; i++) {
-            Data data = new Data();
-            data.setName("第"+i+"条消息");
-            list.add(data.toString());
-        }
+        initDataList();
+        updateDataList();
 
-        update();
+        connectionToCloudURLApiService = getConnectionToCloudURLApiService(TimeDataService.class);
+        //外观模式
+    }
 
-        interceptor = new HttpLoggingInterceptor(new HttpLoggingInterceptor.Logger() {
+
+    public TimeDataService getConnectionToCloudURLApiService(Class<?> className){
+        retrofitInterceptor = new HttpLoggingInterceptor(new HttpLoggingInterceptor.Logger() {
             @Override
             public void log(String message) {
                 Log.i(TAG, "log_interceptor: "+message);
             }
         });
-        client = new OkHttpClient.Builder()
-                .addInterceptor(interceptor)
+        httpClient = new OkHttpClient.Builder()
+                .addInterceptor(retrofitInterceptor)
                 .build();
-        retrofit = new Retrofit.Builder()
-                .baseUrl(URL)
-                .client(client)
+        connectionToCloud = new Retrofit.Builder()
+                .baseUrl(connectionToCloudURL)
+                .client(httpClient)
 //                .addConverterFactory(ScalarsConverterFactory.create())
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
-        apiService = retrofit.create(TimeDataService.class);
-
+        return (TimeDataService) connectionToCloud.create(className);
     }
 
-    public void update(){
-        recycleViewAdapter = new RecycleViewAdapter(MainActivity.this,list);
-        recyclerView = findViewById(R.id.recycleReview);
-        recyclerView.setAdapter(recycleViewAdapter);
+    private void initDataList(){
+        recycleDataList = new ArrayList<>();
+
+        recycleDataList.add(new Data("Time1",1,30));
+        recycleDataList.add(new Data("Time2",2,30));
+        recycleDataList.add(new Data("Time3",3,30));
+        recycleDataList.add(new Data("Time4",4,30));
+        recycleDataList.add(new Data("Time5",5,30));
+        recycleDataList.add(new Data("Time6",6,30));
+        recycleDataList.add(new Data("Time7",7,30));
+        recycleDataList.add(new Data("Time8",8,30));
+        recycleDataList.add(new Data("Time9",9,30));
+        recycleDataList.add(new Data("Time10",10,30));
+    }
+
+    public void updateDataList(){
+        dataListRecyclerViewAdapter = new RecycleViewAdapter(MainActivity.this,recycleDataList);
+        dataListRecyclerView = findViewById(R.id.recycleReview);
+        dataListRecyclerView.setAdapter(dataListRecyclerViewAdapter);
         //设置LayoutManager
-        recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this,LinearLayoutManager.VERTICAL,false));
+        dataListRecyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this,LinearLayoutManager.VERTICAL,false));
     }
 
-    private void getData(){
-        apiService.getRandomTimeData().enqueue(new Callback<RequestData>() {
+    private void getDataFromCloud(){
+        connectionToCloudURLApiService.getRandomTimeData().enqueue(new Callback<RequestData>() {
             @Override
             public void onResponse(Call<RequestData> call, retrofit2.Response<RequestData> response) {
                 RequestData requestData = response.body();
                 Log.i(TAG, "requestData onResponse: "+requestData.toString());
-                staticRequestData = requestData;
-                list = requestData.getData().stream().map(x -> x.toString()).collect(Collectors.toList());
-                for (String s : list) {
-                    System.out.print(s+" ");
-                }
-                System.out.println();
-                update();
-                //MainActivity.handler.sendMessage(message);
+                recycleDataList = requestData.getData();
+                updateDataList();
             }
 
             @Override
@@ -108,7 +116,7 @@ public class MainActivity extends AppCompatActivity {
     public void onClick(View view) {
         switch (view.getId()){
             case R.id.update:
-                getData();
+                getDataFromCloud();
                 break;
         }
     }

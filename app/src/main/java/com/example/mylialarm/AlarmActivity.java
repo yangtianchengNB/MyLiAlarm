@@ -28,16 +28,12 @@ public class AlarmActivity extends AppCompatActivity {
         minute = findViewById(R.id.iv_minute);
 
         Bundle bundle = this.getIntent().getExtras();
-        RequestData requestData = MainActivity.staticRequestData;
-        int key = bundle.getInt("position");
-        Data data = requestData.getData().get(key);
+        Data data = bundle.getParcelable("getData");
         int hour = data.getHour();
         int min = data.getMin();
         System.out.println(data.toString());
-//        String string = bundle.getString("getData");
-//        textView.setText(requestData.getData().get(key).toString());
 
-        RotateAnimation hourAnimation = new RotateAnimation(0,(hour%12)*30, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+        RotateAnimation hourAnimation = new RotateAnimation(0,(hour%12)*30+min/2, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
         hourAnimation.setDuration(5000);
         hourAnimation.setFillAfter(true);
         this.hour.startAnimation(hourAnimation);
