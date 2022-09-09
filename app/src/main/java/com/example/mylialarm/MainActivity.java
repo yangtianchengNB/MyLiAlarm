@@ -1,11 +1,17 @@
 package com.example.mylialarm;
 
+import androidx.annotation.RequiresApi;
+import androidx.annotation.WorkerThread;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 import android.view.View;
@@ -13,6 +19,7 @@ import android.view.View;
 import com.example.mylialarm.bean.Data;
 import com.example.mylialarm.bean.RequestData;
 import com.example.mylialarm.utils.RecycleViewAdapter;
+import com.example.mylialarm.utils.TimeDataViewModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,22 +45,24 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView dataListRecyclerView;
     private RecycleViewAdapter dataListRecyclerViewAdapter;
     private List<Data> recycleDataList;
-
+    TimeDataViewModel timeDataViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        timeDataViewModel = new ViewModelProvider(this, (ViewModelProvider.Factory) new ViewModelProvider.AndroidViewModelFactory(getApplication())).get(TimeDataViewModel.class);
         initDataList();
         updateDataList();
+        initConnectionToCloudURLApiService(TimeDataService.class);
 
-        connectionToCloudURLApiService = getConnectionToCloudURLApiService(TimeDataService.class);
-        //外观模式
     }
 
-
-    public TimeDataService getConnectionToCloudURLApiService(Class<?> className){
+    /**
+     * 初始化连接retrofit的对象
+     * @param className
+     */
+    public void initConnectionToCloudURLApiService(Class<?> className){
         retrofitInterceptor = new HttpLoggingInterceptor(new HttpLoggingInterceptor.Logger() {
             @Override
             public void log(String message) {
@@ -70,12 +79,14 @@ public class MainActivity extends AppCompatActivity {
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
-        return (TimeDataService) connectionToCloud.create(className);
+        connectionToCloudURLApiService = (TimeDataService) connectionToCloud.create(className);
     }
 
+    /**
+     * 加载本地缓存的数据
+     */
     private void initDataList(){
         recycleDataList = new ArrayList<>();
-
         recycleDataList.add(new Data("Time1",1,30));
         recycleDataList.add(new Data("Time2",2,30));
         recycleDataList.add(new Data("Time3",3,30));
@@ -86,31 +97,51 @@ public class MainActivity extends AppCompatActivity {
         recycleDataList.add(new Data("Time8",8,30));
         recycleDataList.add(new Data("Time9",9,30));
         recycleDataList.add(new Data("Time10",10,30));
+        timeDataViewModel.getCurrentDataList().postValue(recycleDataList);
     }
 
+    /**
+     * 将recycleDataList中的数据更新到RecycleView中
+     */
     public void updateDataList(){
-        dataListRecyclerViewAdapter = new RecycleViewAdapter(MainActivity.this,recycleDataList);
-        dataListRecyclerView = findViewById(R.id.recycleReview);
-        dataListRecyclerView.setAdapter(dataListRecyclerViewAdapter);
-        //设置LayoutManager
-        dataListRecyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this,LinearLayoutManager.VERTICAL,false));
-    }
-
-    private void getDataFromCloud(){
-        connectionToCloudURLApiService.getRandomTimeData().enqueue(new Callback<RequestData>() {
+        timeDataViewModel.getCurrentDataList().observe(this, new Observer<List<Data>>() {
             @Override
-            public void onResponse(Call<RequestData> call, retrofit2.Response<RequestData> response) {
-                RequestData requestData = response.body();
-                Log.i(TAG, "requestData onResponse: "+requestData.toString());
-                recycleDataList = requestData.getData();
-                updateDataList();
-            }
-
-            @Override
-            public void onFailure(Call<RequestData> call, Throwable t) {
-                Log.i(TAG, "获取失败");
+            public void onChanged(List<Data> data) {
+                dataListRecyclerViewAdapter = new RecycleViewAdapter(MainActivity.this,data);
+                dataListRecyclerView = findViewById(R.id.recycleReview);
+                dataListRecyclerView.setAdapter(dataListRecyclerViewAdapter);
+                //设置LayoutManager
+                dataListRecyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this,LinearLayoutManager.VERTICAL,false));
             }
         });
+
+    }
+
+    /**
+     * 从云端获取数据
+     */
+    private void getDataFromCloud(){
+        long getTimeBefore = System.currentTimeMillis();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                connectionToCloudURLApiService.getRandomTimeData().enqueue(new Callback<RequestData>() {
+                    @Override
+                    public void onResponse(Call<RequestData> call, retrofit2.Response<RequestData> response) {
+                        RequestData requestData = response.body();
+                        Log.i(TAG, "requestData onResponse: "+requestData.toString());
+                        timeDataViewModel.getCurrentDataList().postValue(requestData.getData());
+                    }
+
+                    @Override
+                    public void onFailure(Call<RequestData> call, Throwable t) {
+                        Log.i(TAG, "获取失败");
+                    }
+                });
+            }
+        }).start();
+
+        System.out.println("getDataFromCloud耗时："+(System.currentTimeMillis() - getTimeBefore));
     }
 
     public void onClick(View view) {
