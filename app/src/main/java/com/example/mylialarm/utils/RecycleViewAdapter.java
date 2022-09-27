@@ -22,7 +22,8 @@ public class RecycleViewAdapter extends RecyclerView.Adapter<RecycleViewAdapter.
     private final Context context;
     private View itemView;
 
-    public RecycleViewAdapter(Context context, List<Data> list) {
+    public
+    RecycleViewAdapter(Context context, List<Data> list) {
         this.context = context;
         this.recycleDataList = list;
     }

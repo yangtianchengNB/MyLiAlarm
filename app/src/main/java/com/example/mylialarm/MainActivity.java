@@ -44,7 +44,6 @@ public class MainActivity extends AppCompatActivity {
     TimeDataService connectionToCloudURLApiService;
     private RecyclerView dataListRecyclerView;
     private RecycleViewAdapter dataListRecyclerViewAdapter;
-    private List<Data> recycleDataList;
     TimeDataViewModel timeDataViewModel;
 
     @Override
@@ -86,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
      * 加载本地缓存的数据
      */
     private void initDataList(){
-        recycleDataList = new ArrayList<>();
+        List recycleDataList = new ArrayList<>();
         recycleDataList.add(new Data("Time1",1,30));
         recycleDataList.add(new Data("Time2",2,30));
         recycleDataList.add(new Data("Time3",3,30));
